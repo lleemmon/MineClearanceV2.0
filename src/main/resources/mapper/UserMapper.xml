@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mc.mapper.UserMapper">
+    <resultMap id="UserMap" type="com.mc.domain.User">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="rankOwn" column="rank_own"/>
+        <result property="rankBattle" column="rank_battle"/>
+        <result property="winNumber" column="win_number"/>
+        <result property="loseNumber" column="lose_number"/>
+        <result property="gameNumber" column="game_number"/>
+        <result property="battleWinNumber" column="battle_win_number"/>
+        <result property="battleLoseNumber" column="battle_lose_number"/>
+        <result property="battleGameNumber" column="battle_game_number"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="getUserList" resultType="com.mc.domain.User" resultMap="UserMap">
+        select * from user
+        <where>
+            <if test="id != null and id != ''">
+                and id = #{id}
+            </if>
+            <if test="username != null and username != ''">
+                and `username` = #{username}
+            </if>
+            <if test="password != null and password != ''">
+                and `password` = #{password}
+            </if>
+        </where>
+    </select>
+
+</mapper>

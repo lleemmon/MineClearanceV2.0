@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>注册界面</title>
+    <script src="../static/js/vue.js" type="text/javascript" charset="utf-8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>
+</head>
+<body>
+    <div id="app">
+        欢迎来到扫雷注册界面<br>
+        <form method="post" th:action="@{/addUser}">
+            <label>用户名:<input type="text" name="username" v-model="username" @blur="checkUserName"></label><p v-text="usernameMsg"></p><br>
+            <label>密码:<input type="password" name="password" v-model="password"></label><p v-text="passwordMsg"></p><br>
+            <p th:text="${msg}"></p>
+            <input type="submit" value="注册">
+        </form>
+        <a th:href="@{/}">登录</a>
+    </div>
+    <script>
+        var vm = new Vue({
+            el:"#app",
+            data:{
+                username:"",
+                password:"",
+                usernameMsg:"",
+                passwordMsg:""
+            },
+            methods:{
+                checkUserName:function (){
+                    if(this.username === ""){
+                        this.usernameMsg = "用户名不可为空";
+                    }else{
+                        this.$http.get('checkUserName?username=' + this.username).then
+                        (function (result){
+                            this.usernameMsg = result.bodyText;
+                        })
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+</html>

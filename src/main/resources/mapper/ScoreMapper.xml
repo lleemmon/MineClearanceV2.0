@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mc.mapper.ScoreMapper">
+    <resultMap id="ScoreMap" type="com.mc.domain.Score">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="gameResult" column="game_result"/>
+        <result property="useTime" column="use_time"/>
+        <result property="boardLevel" column="board_level"/>
+        <result property="winLoseScore" column="win_lose_score"/>
+        <result property="boardScore" column="board_score"/>
+        <result property="mineScore" column="mine_score"/>
+        <result property="timeScore" column="time_score"/>
+        <result property="totalScore" column="total_score"/>
+        <result property="originalRank" column="original_rank"/>
+        <result property="newRank" column="new_rank"/>
+        <result property="rankFloat" column="rank_float"/>
+        <result property="playTime" column="play_time"/>
+    </resultMap>
+</mapper>

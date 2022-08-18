@@ -1,0 +1,815 @@
+<!-- 纯VUE实现的扫雷 V1.0 -->
+<!-- -1:雷 0-8周围雷的数量 9保护标记 10疑问标记-->
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>扫雷2.0版本</title>
+		<script src="../static/js/vue.js" type="text/javascript" charset="utf-8"></script>
+		<script src="../static/js/common/dict.js"></script>
+		<script src="../static/js/jquery.min.js"></script>
+		<script src="../static/js/layui.js" type="text/javascript" charset="utf-8"></script>
+		<script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>
+		<script src="https://unpkg.com/vue-router@3.5.4/dist/vue-router.js"></script>
+		<script src="http://cdn.bootcss.com/stomp.js/2.3.3/stomp.min.js"></script>
+		<script src="https://cdn.bootcss.com/sockjs-client/1.1.4/sockjs.min.js"></script>
+		<link rel="stylesheet" href="../static/css/layui.css" media="all">
+		<style>
+			.close{
+				text-align: center;
+				background-color:grey;
+				float: left;
+				border: black solid 1px;
+			}
+			.gameBoard{
+				position: absolute;
+				left:28.5%;
+				top:0%;
+			}
+			#app{
+				position: relative;
+			}
+			.close:hover{
+				background-color: cyan;
+				transition: all 0.2s ease;
+			}
+			.open{
+				text-align: center;
+				background-color:whitesmoke;
+				float: left;
+				border: black solid 1px;
+			}
+			.gameinfo{
+				color: aquamarine;
+				font-size: 22px;
+			}
+			.saolei{
+				color: darkblue;
+				font-size: 22px;
+			}
+			.biaoji{
+				color: red;
+				font-size: 22px;
+			}
+			.gameBoardBox{
+				height: 675px;
+				width: 675px;
+				display: block;
+			}
+			.gamestart{
+				position: absolute;
+				left:28.5%;
+				top:0%;
+				height: 675px;
+				width: 675px;
+				display: block;
+				border: 1px blueviolet solid;
+			}
+			.gameresult{
+				position: absolute;
+				left:28.5%;
+				top:0%;
+				height: 675px;
+				width: 675px;
+				display: block;
+				border: 1px blueviolet solid;
+			}
+			.onlineGameResult{
+				position: absolute;
+				left:28.5%;
+				top:0%;
+				height: 675px;
+				width: 675px;
+				display: block;
+				border: 1px blueviolet solid;
+			}
+			.gameresultinfo{
+				color: palevioletred;
+				font-size: 35px;
+				align-items: center;
+				padding: 15px;
+				padding-left: 225px;
+			}
+			.gamestart h1{
+				text-align: center;
+				color: darkorange;
+			}
+			.gamestart a p{
+				text-align: center;
+				font-size: 45px;
+			}
+			a:link, a:visited{
+				text-decoration: none;
+			}
+			a:hover{
+				color:orangered;
+			}
+			.chooseinfo{
+				margin-top: 20px;
+				margin-left: -50px;
+			}
+			[v-cloak]{
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="app">
+			<p>用户名:{{username}}</p>
+			<p>个人等级分:{{rankOwn}}</p>
+			<p>个人胜局数:{{winNumber}}</p>
+			<p>个人败局数:{{loseNumber}}</p>
+			<p>个人游戏数:{{gameNumber}}</p>
+			<p>个人对局分:{{rankBattle}}</p>
+			<p>对决胜局数:{{battleWinNumber}}</p>
+			<p>对决败局数:{{battleLoseNumber}}</p>
+			<p>对决游戏数:{{battleGameNumber}}</p>
+			<p>个人胜率:{{winRate}}%</p>
+			<p>对决胜率:{{battleWinRate}}%</p>
+			<p v-cloak>当前在线人数:{{onlinePersonNumber}}</p>
+			<p>系统公告:</p>
+			<p>{{systemNotice}}</p>
+			<router-view ref="gameRouter"
+						 @sendall="sendAll"
+						 @loadwaitingforstartbattle = "loadWaitingForStartBattle"
+						 @loadwaitingforendbattleonline = "loadWaitingForEndBattleOnline"
+						 :username="username"
+						 :rankown="rankOwn"
+						:rankbattle="rankBattle"></router-view>
+		</div>
+
+		<template id="gamestart">
+			<div class="gamestart">
+				<br><br><br><br><br><br><br><br>
+				<br><br><br><br>
+<!--				<button>回到主界面</button>-->
+<!--				<button>再来一次</button>-->
+				<router-link to="/game"><p>单人游戏</p></router-link>
+				<router-link to="/game"><p>排行榜(研究中)</p></router-link>
+				<router-link to="/game"><p>历史对局(研究中)</p></router-link>
+				<button @click="doublePlay()"><p>双人排位(研究中)</p></button>
+			</div>
+		</template>
+			
+		<template id="gameresult">
+			<div class="gameresult">
+				<div class="gameresultinfo">游戏结果：{{this.$route.params.gameResult}}</div>
+				<div class="gameresultinfo">胜负得分:{{this.$route.params.winLoseScore}}</div>
+				<div class="gameresultinfo">排雷得分:{{this.$route.params.mineScore}}</div>
+				<div class="gameresultinfo">时间得分:{{this.$route.params.timeScore}}</div>
+				<div class="gameresultinfo">格子得分:{{this.$route.params.boardScore }}</div>
+				<div class="gameresultinfo">最终得分:{{this.$route.params.totalScore}}</div>
+				<div class="gameresultinfo">个人等级分:{{this.$route.params.originalRank}} -> {{this.$route.params.newRank}}</div>
+				<div class="gameresultinfo">得分浮动:{{this.$route.params.rankFloat}}</div>
+				<div class="chooseinfo">
+					<router-link to="/gamestart">回到主界面</router-link>
+					<router-link to="/game">再来一次</router-link>
+				</div>
+			</div>
+		</template>
+
+		<template id="onlineGameResult">
+			<div class="onlineGameResult">
+				<div>用户名:{{this.$route.params.usernameOwn}} VS {{this.$route.params.usernameOther}}</div>
+				<div>游戏结果:{{this.$route.params.gameResultOwn}} VS {{this.$route.params.gameResultOther}}</div>
+				<div>胜负得分:{{this.$route.params.winLoseScoreOwn}} VS {{this.$route.params.winLoseScoreOther}}</div>
+				<div>排雷得分:{{this.$route.params.mineScoreOwn}} VS {{this.$route.params.mineScoreOther}}</div>
+				<div>时间得分:{{this.$route.params.timeScoreOwn}} VS {{this.$route.params.timeScoreOther}}</div>
+				<div>格子得分:{{this.$route.params.boardScoreOwn}} VS {{this.$route.params.boardScoreOther}}</div>
+				<div>最终得分:{{this.$route.params.totalScoreOwn}} VS {{this.$route.params.totalScoreOther}}</div>
+				<div>对局结果:{{this.$route.params.battleResult}}</div>
+				<div>个人对局分:{{this.$route.params.originalRank}} -> {{this.$route.params.newRank}}</div>
+				<div>得分浮动:{{this.$route.params.rankFloat}}</div>
+				<div class="chooseinfo">
+					<router-link to="/gamestart">回到主界面</router-link>
+				</div>
+			</div>
+		</template>
+
+		<template id="gameboard">
+			<div class="gameBoard">
+				<span :class="{saolei : ModeFlag,biaoji : !ModeFlag}">当前模式:{{CurrentMsg}} [空格键切换]</span>
+				<span class="gameinfo">剩余雷数:{{leftMineNumberPred}}</span>
+				<span class="gameinfo">剩余格子数:{{totalLeft}}</span>
+				<span class="gameinfo">用时:{{useTime}}ms</span>
+				<span class="gameinfo">难度:{{boardLevel}}</span>
+				<div class="gameBoardBox">
+					<div v-for="(boardRow, rowIndex) in gameBoard" :key="rowIndex"
+					:style="[lineStyle]">
+						<div v-for="(boardItem, colIndex) in boardRow" :key="boardItem.id"
+						@click="ClickBorder(rowIndex, colIndex)"
+						:class="{ open: stateBoard[rowIndex][colIndex].state == 1,
+									close: stateBoard[rowIndex][colIndex].state != 1}"
+						:style="[elemStyle, {color:ColorList[gameBoard[rowIndex][colIndex].elem - 1]}]">
+								{{boardItem.elem | showItem(rowIndex, colIndex, stateBoard)}}
+						</div>
+					</div>
+				</div>
+			</div>
+		</template>
+		
+		<script>
+			console.log("start");
+			let layer;
+			layui.use(['layer'], function () {
+				layer = layui.layer;
+			})
+
+			var onlineGameResult = {
+				template:"#onlineGameResult"
+			}
+
+			var gamestart = {
+				template:"#gamestart",
+				methods:{
+					doublePlay:function (){
+						this.$emit
+						(
+								"sendall",
+								messageType.StartBattle,
+								"",
+						)
+						this.$emit("loadwaitingforstartbattle");
+					}
+				}
+			};
+			var gameresult = {
+				template:'#gameresult'
+			};
+			var gameboard = {
+				template:'#gameboard',
+				mounted(){
+					let ranks = this.rankown;
+					let obj = {rank:ranks, isOnlineBattle:this.$route.params.isOnlineBattle};
+					if(obj.isOnlineBattle) {
+						this.isOnlineBattle = obj.isOnlineBattle;
+						ranks = this.$route.params.boardLevel;
+						obj['rank'] = this.$route.params.boardLevel;
+						obj['username1p'] = this.$route.params.username1p;
+						obj['username2p'] = this.$route.params.username2p;
+						obj['isOnlineBattle'] = true;
+					}
+					else{
+						obj['isOnlineBattle'] = false;
+					}
+					console.log(obj);
+					this.$http.post('/board/create', obj).then(function (result){
+						this.row = result.body.row;
+						this.col = result.body.col;
+						this.mineNumber = result.body.mineNumber;
+						this.boardLevel = result.body.levelScore;
+						this.SyncGameBoard(this.row , this.col, this.mineNumber);
+					})
+					document.onkeydown = (e) => {
+					  let e1 = e || event || window.event || arguments.callee.caller.arguments[0];
+					  if (e1 && e1.keyCode === 32) {
+						this.changeMode();
+					  } 
+					}
+					window.onbeforeunload = () =>{
+						// 此处调用保存的方法
+						if(this.gameState === gameState.start){
+							this.loseAction();
+						}
+						this.gameState = gameState.ready;
+					}
+				},
+				destroyed(){
+					clearInterval(this.TimeCounterId);
+				},
+				props:['username', 'rankown', 'rankbattle'],
+				data:function(){
+					return {
+						gameBoard:[
+								[]
+						],//实际的棋盘数据
+						stateBoard:[
+								[]
+						],//实际的棋盘状况
+						row: 0,
+						col: 0,
+						total: 0,
+						totalLeft: 0,//未被翻开的个数
+						mineNumber: 0,
+						boardLevel: 1500,//游戏难度
+						leftMineNumberPred: 0,//预测剩余雷数
+						leftMineNumberTrue: 0,//实际剩余雷数
+						gameState:gameState.ready,//ready准备 start 进行中 fail 失败 win 成功
+						startTime:0,
+						useTime:0,
+						TimeCounterId:null,
+						elemSize:60,
+						elemStyle:{},
+						lineStyle:{},
+						isOnlineBattle:false,
+						ModeFlag:true,//扫雷模式true 保护模式false
+						CurrentMsg:"扫雷",
+						ColorList:["blue", "green", "red", "darkblue", "brown", "cyan", "black", "grey"]
+					}
+				},
+				methods:{
+					//生成随机的雷
+					emblanceMine:function(protectedTag){
+						let tempList = [];//记录哪些位置还不是雷
+						let protectedList =
+						[protectedTag - this.col - 1, protectedTag - this.col, protectedTag - this.col + 1,
+						protectedTag - 1, protectedTag, protectedTag + 1,
+						protectedTag + this.col - 1, protectedTag + this.col, protectedTag + this.col + 1];
+						for (let i = 0; i < this.total; i++) {
+							if(protectedList.indexOf(i) === -1) {
+								tempList.push(i);
+							}
+						}
+
+						//把部分格子变成雷
+						for(let i = 0;i < this.mineNumber;i++){
+							let tempIndex = Math.floor(Math.random()* tempList.length);
+							let trueIndex = tempList[tempIndex];
+							tempList.splice(tempIndex, 1);
+							this.gameBoard[Math.floor(trueIndex / this.col)][trueIndex % this.col].elem = -1;
+						}
+					},
+					//计算每个格子周围有几个雷
+					calMineNumber:function(){
+						for(let i = 0;i < this.row;i++){
+							for(let j = 0;j < this.col;j++){
+								this.gameBoard[i][j].elem = this.calPerMineNumber(i, j);
+							}
+						}
+					},
+					//计算某个格子周围有几个雷
+					calPerMineNumber:function(rowIndex, colIndex){
+						if(this.gameBoard[rowIndex][colIndex].elem === -1)
+							return -1;
+						let dx = [-1,-1,-1,0,0,1,1,1];
+						let dy = [-1,0,1,-1,1,-1,0,1];
+						let count = 0;
+						for(let i = 0;i < 8;i++){
+							let tx = dx[i] + rowIndex;
+							let ty = dy[i] + colIndex;
+							if(tx < 0 || tx >= this.row)
+								continue;
+							if(ty < 0 || ty >= this.col)
+								continue;
+							if(this.gameBoard[tx][ty].elem === -1)
+								count++;
+						}
+						return count;
+					},
+					//棋盘初始化
+					SyncGameBoard:function(row, col, mineNumber){
+						this.row = row;
+						this.col = col;
+						this.total = row * col;
+						this.mineNumber = mineNumber;
+						this.totalLeft = this.total;
+						this.leftMineNumberPred = mineNumber;
+						this.leftMineNumberTrue = mineNumber;
+						this.elemSize = 675 / row - 2;
+						this.elemStyle = {height: this.elemSize + "px", 
+										  width:this.elemSize + "px",
+										  'font-size':this.elemSize * 3 / 4 + "px"};
+						this.lineStyle = {height: this.elemSize + "px"};
+						this.gameState = gameState.start;
+									
+						this.LogicProcess();
+					},
+					LogicProcess:function(protectedTag){
+						this.gameBoard = [];
+						this.stateBoard = [];
+						
+						for(let i = 0;i < this.row;i++){
+							let tempRow = [];
+							let stateRow = [];
+							for(let j = 0;j < this.col;j++){
+								tempRow.push({elem:0, id:"mine:" + (i * this.col + j)});
+								stateRow.push({state:0, id:"mine:" + (i * this.col + j)});
+							}
+							this.gameBoard.push(tempRow);
+							this.stateBoard.push(stateRow);
+						}	
+						
+						this.emblanceMine(protectedTag);
+						this.calMineNumber();			
+						this.startTimeCounter();
+					},
+					//被鼠标点击
+					ClickBorder:function(row, col){
+						if(this.gameState !== gameState.start){
+							return;
+						}
+						if(this.totalLeft === this.total && this.gameBoard[row][col].elem !== 0){
+							this.LogicProcess(row * this.col + col);
+						}
+						if(this.stateBoard[row][col].state === 1){
+							this.QuicklyClear(row, col);
+						}
+						else if(this.ModeFlag)
+							this.ClickLeft(row, col);
+						else
+							this.ClickRight(row, col);
+					},
+					//扫雷模式
+					ClickLeft:function(row, col){
+						if(row < 0 || row >= this.row)
+							return;
+						if(col < 0 || col >= this.col)
+							return;
+						if(this.stateBoard[row][col].state === 2 || this.stateBoard[row][col].state === 1)
+							return;
+						this.stateBoard[row][col].state = 1;
+						this.totalLeft--;
+						if(this.gameBoard[row][col].elem === -1){
+							this.gameState = gameState.lose;
+							return;
+						}
+						if(this.totalLeft === this.leftMineNumberTrue){
+							this.gameState = gameState.win;
+							return;
+						}
+						let dx = [-1,-1,-1,0,0,1,1,1];
+						let dy = [-1,0,1,-1,1,-1,0,1];
+						
+						if(this.gameBoard[row][col].elem === 0){
+							for(let i = 0;i < 8;i++){
+								this.ClickLeft(row + dx[i], col + dy[i]);
+							}
+						}
+					},
+					//插旗模式
+					ClickRight:function(row, col){
+						if(row < 0 || row >= this.row)
+							return;
+						if(col < 0 || col >= this.col)
+							return;
+						if(this.stateBoard[row][col].state === 1)
+							return;
+						if(this.stateBoard[row][col].state === 0){//正常变保护 保护变？2>3 ?
+							this.stateBoard[row][col].state = 2;
+							this.leftMineNumberPred--;
+							if(this.gameBoard[row][col].elem === -1)
+								this.leftMineNumberTrue--;
+							this.totalLeft--;
+							return;
+						}
+						if(this.stateBoard[row][col].state === 2){//正常变保护 保护变？2>3 ?
+							this.stateBoard[row][col].state = 0;
+							this.leftMineNumberPred++;
+							if(this.gameBoard[row][col].elem === -1)
+								this.leftMineNumberTrue++;
+							this.totalLeft++;
+						}
+					},
+					//快速清理模式
+					QuicklyClear:function(row, col){
+						let dx = [-1,-1,-1,0,0,1,1,1];
+						let dy = [-1,0,1,-1,1,-1,0,1];
+						let leftMine = this.gameBoard[row][col].elem;//玩家眼中剩余的炸弹数
+						for(var i = 0;i < 8;i++){
+							let tx = row + dx[i];
+							let ty = col + dy[i];
+							if(tx < 0 || tx >= this.row)
+								continue;
+							if(ty < 0 || ty >= this.col)
+								continue;
+							if(this.stateBoard[tx][ty].state === 2)
+								leftMine--;
+						}
+						if(leftMine === 0){
+							for(let i = 0;i < 8;i++){
+								let tx = row + dx[i];
+								let ty = col + dy[i];
+								this.ClickLeft(tx, ty);
+							}
+						}
+					},
+					startTimeCounter:function(){
+						this.startTime = new Date().getTime();
+						this.TimeCounterId = setInterval(() => {
+							this.useTime =  new Date().getTime() - this.startTime;
+						}, 100);
+					},
+					changeMode:function(){
+						this.ModeFlag = !this.ModeFlag;
+					},
+					sendAll:function (messageType, context){
+						this.$emit
+						(
+								"sendall",
+								messageType,
+								context
+						)
+					},
+					winAction:function(){
+						this.gameOverAction(gameWin);
+					},
+					loseAction:function(){
+						this.gameOverAction(gameLose);
+					},
+					gameOverAction:function (state){
+						let changeState = 0;
+						let gameResultShow = "";
+						if (state === gameWin) {
+							changeState = 2;
+							gameResultShow = "WIN!";
+						}
+						if (state === gameLose) {
+							changeState = 1;
+							gameResultShow = "LOSE!"
+						}
+						for (let i = 0; i < this.row; i++) {
+							for (let j = 0; j < this.col; j++) {
+								if (this.stateBoard[i][j].state === 0 && this.gameBoard[i][j].elem === -1) {
+									this.stateBoard[i][j].state = changeState;
+								}
+							}
+						}
+						clearInterval(this.TimeCounterId);
+						this.TimeCounterId = null;
+						let postUrl;
+						let ScoreVoToServer = {
+							gameResult: state,
+							boardLevel: this.boardLevel,
+							openBoardNumber: this.total - this.totalLeft,
+							totalBoardNumber: this.total,
+							killMineNumber: this.mineNumber - this.leftMineNumberTrue,
+							totalMineNumber: this.mineNumber,
+							useTime: this.useTime
+						}
+						let dofunction;
+						if(this.isOnlineBattle) {
+							postUrl = '/result/getScoreWithNoRankChange';
+							const that = this;
+							dofunction = function (result){
+								let ScoreVo =
+								{
+									gameResult:result.body.gameResult,
+									winLoseScore: result.body.winLoseScore,
+									mineScore: result.body.mineScore,
+									timeScore: result.body.timeScore,
+									boardScore: result.body.boardScore,
+									totalScore: result.body.totalScore
+								};
+								let Context = JSON.stringify(ScoreVo);
+								that.sendAll(messageType.PushOnlineBattleScore, Context);
+								that.$emit("loadwaitingforendbattleonline");
+								//TODO 生成等待幕布 等待对手完毕
+							};
+						}
+						else {
+							postUrl = '/result/getScore';
+							const that = this;
+							dofunction = function (result){
+								let Context = "[" + that.username + "]个人等级分" + result.body.originalRank
+										+ "->" + result.body.newRank + "(" + (result.body.rankFloat >= 0 ? '+' : '')
+										+ result.body.rankFloat + ")";
+								that.sendAll(messageType.UserRankChanged, Context);
+								//延迟1000毫秒执行
+								setTimeout(function () {
+									that.$router.push({
+										name: 'gameresult',
+										params:
+										{
+											gameResult: gameResultShow,
+											winLoseScore: result.body.winLoseScore,
+											mineScore: result.body.mineScore,
+											timeScore: result.body.timeScore,
+											boardScore: result.body.boardScore,
+											totalScore: result.body.totalScore,
+											originalRank: result.body.originalRank,
+											newRank: result.body.newRank,
+											rankFloat: result.body.rankFloat
+										}
+									})
+								}, 1000);
+							};
+						}
+
+						this.$http.post(postUrl,
+						ScoreVoToServer)
+						.then(function (result) {
+							dofunction(result);
+						});
+					}
+				},
+				filters:{
+					showItem:function(trueValue, rowIndex, colIndex, stateBoard){
+						//0未被点开 1被点开 2保护
+						if(stateBoard[rowIndex][colIndex].state === 0)
+							return " ";
+						if(stateBoard[rowIndex][colIndex].state === 2)
+							return "🚩";
+						if(trueValue === -1)
+							return "💣";
+						if(trueValue === 0)
+							return " ";
+						return trueValue;
+					}
+				},
+				watch:{
+					'gameState':function(newVal, oldVal){
+						if(newVal === gameState.lose){
+							this.loseAction();
+						}
+						if(newVal === gameState.win){
+							this.winAction();
+						}
+					},
+					'ModeFlag':function(newVal, oldVal){
+						if(newVal){
+							this.CurrentMsg = "扫雷";
+						}
+						else{
+							this.CurrentMsg = "插旗";
+						}
+					}
+				}
+			};
+
+			var routerObj = new VueRouter({
+				routes:[
+					{path:"/",redirect:"/gamestart"},
+					{path:"/game",name:"game",component:gameboard},
+					{path:"/gamestart",component:gamestart},
+					{path:"/gameresult",name:"gameresult" ,component:gameresult},
+					{path:"/onlineGameResult",name:"onlineGameResult" ,component:onlineGameResult}
+					//{path:"/gameresult",name:"gameresult" ,component:gameresult}
+
+					//onlineGameResult
+				]
+			});
+			
+			var vm = new Vue({
+				el:'#app',
+				data:{
+					username:"",
+					rankOwn:"",
+					rankBattle:"",
+					webSocket:null,
+					systemNotice:"",
+					onlinePersonNumber:0,
+					winNumber:0,
+					loseNumber:0,
+					gameNumber:0,
+					battleWinNumber:0,
+					battleLoseNumber:0,
+					battleGameNumber:0,
+					winRate:0,
+					battleWinRate:0,
+					layerLoadIndex:null,
+					outOfTimeAction:null
+				},
+				components: {
+
+				},
+				methods: {
+					getUserData:function (){
+						this.$http.post('/getUserData',{}).then(
+							function (result){
+								this.username = result.body.username;
+								this.rankOwn = result.body.rankOwn;
+								this.rankBattle = result.body.rankBattle;
+								this.winNumber = result.body.winNumber;
+								this.loseNumber = result.body.loseNumber;
+								this.gameNumber = result.body.gameNumber;
+								this.battleWinNumber = result.body.battleWinNumber;
+								this.battleLoseNumber = result.body.battleLoseNumber;
+								this.battleGameNumber = result.body.battleGameNumber;
+								if(result.body.gameNumber > 0)
+									this.winRate = result.body.winNumber * 100 / result.body.gameNumber;
+								if(result.body.battleGameNumber > 0)
+									this.battleWinRate = result.body.battleWinNumber * 100 / result.body.battleGameNumber;
+								if ("WebSocket" in window) {
+									if (this.webSocket === null) {
+										this.webSocket = new WebSocket("ws://localhost:8080/webSocket/" + this.username);
+										this.webSocket.onopen = function () {
+											console.log("已经连通了websocket");
+										};
+										let that = this;
+										this.webSocket.onmessage = function (evt) {
+											let received_msg = evt.data;
+											let obj = JSON.parse(received_msg);
+											let MessageType = obj.MessageType;
+											console.log(MessageType, obj.Context);
+											switch (MessageType){
+												case messageType.NormalNotice:
+												case messageType.UserRankChanged:
+													that.systemNotice = obj.Context;
+													break;
+												case messageType.PersonNumberNotice:
+													that.onlinePersonNumber = obj.Context;
+													break;
+												case messageType.ForceOutOfLine:
+													alert(obj.Context);
+													document.location = 'http://localhost:8080'
+													break;
+												case messageType.MatchSucceeded:
+													$('.loadInfo').text("匹配成功");
+													clearTimeout(that.outOfTimeAction);
+													that.outOfTimeAction = null;
+													setTimeout(function (){
+														console.log(obj);
+														console.log(obj.Context);
+														let battleUserVo = JSON.parse(obj.Context);
+														let username1p = battleUserVo.username1p;
+														let username2p = battleUserVo.username2p;
+														let rankBattle1p = battleUserVo.rankBattle1p;
+														let rankBattle2p = battleUserVo.rankBattle2p;
+														let notice = "[" + username1p + "]和["+ username2p +"]开始对局"
+														that.systemNotice = notice;
+														layer.close(that.layerLoadIndex);
+
+														that.$router.push({name:'game',
+															params:
+															{
+																isOnlineBattle:true,
+																boardLevel:Math.floor((rankBattle1p + rankBattle2p) * 0.75),
+																username1p:username1p,
+																username2p:username2p
+															}
+														})
+													},1000);
+													break;
+												case messageType.GetOnlineBattleScoreFromServer:
+													console.log(333);
+													let OnlineBattleScoreVo = JSON.parse(obj.Context);
+													console.log(OnlineBattleScoreVo);
+													that.$http.post("/result/getBattleScore", OnlineBattleScoreVo).then(function (result){
+														console.log(111);
+														layer.close(that.layerLoadIndex);
+														clearTimeout(that.outOfTimeAction);
+														that.outOfTimeAction = null;
+														that.$router.push({name:'onlineGameResult',
+															params: OnlineBattleScoreVo
+														})
+													});
+													console.log(222);
+													break;
+											}
+										};
+
+										this.webSocket.onclose = function () {
+											console.log("连接已关闭...");
+										};
+
+									}
+								}
+								else {
+									alert("您的浏览器不支持 WebSocket!");
+								}
+
+							}
+						)
+					},
+					sendAll:function (messageType, context, showContext){
+						var message = {
+							"MessageType": messageType,
+							"Context": context,
+						};
+						if(showContext){
+							this.systemNotice = context;
+						}
+						this.webSocket.send(JSON.stringify(message));
+					},
+					loadWaitingForStartBattle:function (){
+						this.layerLoadIndex = layer.load(0, {
+							shade: [0.8, "#7F7F00"],
+							time: 60*1000,
+							content:'<div style="width: 400px;height: 200px;margin-left: -300px;position: relative">'
+									+ '<div style="top:-25px;position: absolute"><p class="loadInfo" style="font-size: 60px; text-align: left;">' + '匹配对手中'+ '</p></div>' +
+									'</div>'
+						});
+						let that = this;
+						this.outOfTimeAction = setTimeout(function (){
+							that.sendAll(messageType.ClientGetMatchOutOfTime, "");
+							layer.msg("匹配超时!");
+						},60000);
+					},
+					loadWaitingForEndBattleOnline:function (){
+						this.layerLoadIndex = layer.load(0, {
+							shade: [0.8, "#7F7F00"],
+							time: 600*1000,
+							content:'<div style="width: 400px;height: 200px;margin-left: -400px;position: relative">'
+									+ '<div style="top:-25px;position: absolute"><p class="loadInfo" style="font-size: 60px; text-align: left;">' + '对手还在进行中'+ '</p></div>' +
+									'</div>'
+						});
+						//let that = this;
+						this.outOfTimeAction = setTimeout(function (){
+							//that.sendAll(messageType.ClientGetMatchOutOfTime, "");
+							layer.msg("对方网络不佳，你取得胜利!");
+						},600*1000);
+					},
+				},
+				mounted:function (){
+					this.getUserData();
+				},
+				watch: {
+					$route(to, from){
+						this.getUserData();
+					}
+				},
+				router:routerObj
+			});
+		</script>
+	</body>
+</html>

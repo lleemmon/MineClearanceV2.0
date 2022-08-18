@@ -1,0 +1,41 @@
+<!DOCTYPE html >
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>登陆界面</title>
+</head>
+<body>
+    <div id="app">
+        欢迎来到扫雷登陆界面<br>
+        <form method="post" th:action="@{/login}">
+            <label>用户名:<input type="text" name="username" v-model="username"></label><br>
+            <label>密码:<input type="password" name="password" v-model="password"></label><br>
+            <p th:text="${msg}"></p>
+            <input type="submit" value="登录">
+        </form>
+        <a th:href="@{/register}">注册</a>
+    </div>
+<!--    <script>-->
+<!--        Vue.http.options.emulateJSON = true;-->
+<!--        Vue.http.options.root = 'http://localhost:8080';-->
+<!--        var vm = new Vue({-->
+<!--            el: '#app',-->
+<!--            data:{-->
+<!--                username:"",-->
+<!--                password:""-->
+<!--            },-->
+<!--            methods:{-->
+<!--                login: function(){-->
+<!--                    console.log("start")-->
+<!--                    this.$http.post('login',-->
+<!--                        {-->
+<!--                            username: this.username,-->
+<!--                            password:this.password-->
+<!--                        }-->
+<!--                    )-->
+<!--                }-->
+<!--            }-->
+<!--        });-->
+<!--    </script>-->
+</body>
+</html>

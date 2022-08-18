@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mc.mapper.ScoreBattleMapper">
+
+    <resultMap id="BaseResultMap" type="com.mc.domain.ScoreBattle">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="usernameOwn" column="username_own" jdbcType="VARCHAR"/>
+            <result property="usernameOther" column="username_other" jdbcType="VARCHAR"/>
+            <result property="gameResultOwn" column="game_result_own" jdbcType="VARCHAR"/>
+            <result property="gameResultOther" column="game_result_other" jdbcType="VARCHAR"/>
+            <result property="battleResult" column="battle_result" jdbcType="VARCHAR"/>
+            <result property="boardLevel" column="board_level" jdbcType="INTEGER"/>
+            <result property="winLoseScoreOwn" column="win_lose_score_own" jdbcType="INTEGER"/>
+            <result property="winLoseScoreOther" column="win_lose_score_other" jdbcType="INTEGER"/>
+            <result property="boardScoreOwn" column="board_score_own" jdbcType="INTEGER"/>
+            <result property="boardScoreOther" column="board_score_other" jdbcType="INTEGER"/>
+            <result property="timeScoreOwn" column="time_score_own" jdbcType="INTEGER"/>
+            <result property="timeScoreOther" column="time_score_other" jdbcType="INTEGER"/>
+            <result property="mineScoreOwn" column="mine_score_own" jdbcType="INTEGER"/>
+            <result property="mineScoreOther" column="mine_score_other" jdbcType="INTEGER"/>
+            <result property="totalScoreOwn" column="total_score_own" jdbcType="INTEGER"/>
+            <result property="totalScoreOther" column="total_score_other" jdbcType="INTEGER"/>
+            <result property="originalRank" column="original_rank" jdbcType="INTEGER"/>
+            <result property="newRank" column="new_rank" jdbcType="INTEGER"/>
+            <result property="rankFloat" column="rank_float" jdbcType="INTEGER"/>
+            <result property="playTime" column="play_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,username_own,username_other,
+        game_result_own,game_result_other,battle_result,
+        board_level,win_lose_score_own,win_lose_score_other,
+        board_score_own,board_score_other,time_score_own,
+        time_score_other,mine_score_own,mine_score_other,
+        total_score_own,total_score_other,original_rank,
+        new_rank,rank_float,play_time
+    </sql>
+</mapper>
